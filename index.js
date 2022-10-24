@@ -1,14 +1,14 @@
 const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const fs = require("fs");
-const allEagleMarine = require("./eaglemarine-all.json");
+const allNextLevel = require("./nxtlvl-all.json");
 puppeteer.use(StealthPlugin());
 const products = [];
 
 puppeteer.launch({ headless: true }).then(async (browser) => {
-  for await (const eagleMarine of allEagleMarine) {
+  for await (const nextLevel of allNextLevel) {
     const page = await browser.newPage();
-    await page.goto(eagleMarine);
+    await page.goto(nextLevel);
     let product = await page.evaluate(() => {
       function camelCase(str) {
         return str
@@ -25,16 +25,19 @@ puppeteer.launch({ headless: true }).then(async (browser) => {
         manufacturerInfo: {},
       };
       const specifications = Array.from(
-        document.querySelectorAll(".unitHighlights ul li.liUnit")
+        document.querySelectorAll(
+          "#accordionSpecifications .panel-body ul .liUnit"
+        )
       );
       specifications?.forEach((spec) => {
-        product.specs[
-          camelCase(spec.querySelector(".lblUnitLabel")?.innerText)
-        ] = spec.querySelector(".spnUnitValue")?.innerText;
+        product.specs[camelCase(spec.querySelector("label")?.innerText)] =
+          spec.querySelector("span")?.innerText;
       });
 
       const manufacturerInfo = Array.from(
-        document.querySelectorAll(".unitSpecifications ul li.unitSpec")
+        document.querySelectorAll(
+          "#accordionManufacturerInfo .panel-body ul .liUnit"
+        )
       );
       manufacturerInfo?.forEach((info) => {
         if (info.querySelector("span")) {
@@ -45,20 +48,22 @@ puppeteer.launch({ headless: true }).then(async (browser) => {
       });
 
       product.name = document.querySelector(".unitTitle h1")?.innerText;
+      product.price = document.querySelector(".price-value")?.innerText;
       product.description = document.querySelector(
-        ".unitDetailsInfo .panel-body"
+        "#accordionInfo .panel-body"
       )?.innerHTML;
       product["images"] = Array.from(
-        document.querySelectorAll(".unitDetailsGallery .panel-body .photo a")
-      ).map((a) => a.dataset.src);
+        document.querySelectorAll(
+          "#accordionPhotos .panel-body .image-gallery .photo img"
+        )
+      ).map((a) => a.getAttribute("href"));
       return product;
     });
-    console.log(product);
     products.push(product);
     console.log(product);
     await page.close();
   }
 
-  fs.writeFileSync("eaglemarine.json", JSON.stringify(products));
+  fs.writeFileSync("nextlevel2.json", JSON.stringify(products));
   browser.close();
 });
