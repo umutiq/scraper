@@ -45,6 +45,7 @@ puppeteer.launch({ headless: true }).then(async (browser) => {
       });
 
       product.name = document.querySelector(".unitTitle h1")?.innerText;
+      product.price = document.querySelector(".unitPrice h2")?.innerText;
       product.description = document.querySelector(
         ".unitDetailsInfo .panel-body"
       )?.innerHTML;
