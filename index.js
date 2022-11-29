@@ -1,14 +1,41 @@
 const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const fs = require("fs");
-const allNextLevel = require("./nxtlvl-all.json");
+const BaseUrl = "https://www.nxtlvlmarine.com";
+const invPages = [
+  BaseUrl + "/--inventory",
+  BaseUrl + "/--inventory?pg=2",
+  BaseUrl + "/--inventory?pg=3",
+  BaseUrl + "/--inventory?pg=4",
+  BaseUrl + "/--inventory?pg=5",
+  BaseUrl + "/--inventory?pg=6",
+  BaseUrl + "/--inventory?pg=7",
+  BaseUrl + "/--inventory?pg=8",
+];
+const allNextLevel = [];
 puppeteer.use(StealthPlugin());
 const products = [];
 
-puppeteer.launch({ headless: true }).then(async (browser) => {
+puppeteer.launch({ headless: false }).then(async (browser) => {
+  for await (const pg of invPages) {
+    const page = await browser.newPage();
+    await page.goto(pg);
+    await page.waitForSelector(".vehicle-heading__link");
+    const allProducts = await page.evaluate(() => {
+      const products = document.querySelectorAll(".vehicle-heading__link");
+      const allProducts = [];
+      products.forEach((product) => {
+        const pLink = product.attributes.href.value;
+        allProducts.push(pLink);
+      });
+      return allProducts;
+    });
+    allNextLevel.push(...allProducts);
+    await page.close();
+  }
   for await (const nextLevel of allNextLevel) {
     const page = await browser.newPage();
-    await page.goto(nextLevel);
+    await page.goto(BaseUrl + nextLevel);
     let product = await page.evaluate(() => {
       function camelCase(str) {
         return str
@@ -64,6 +91,6 @@ puppeteer.launch({ headless: true }).then(async (browser) => {
     await page.close();
   }
 
-  fs.writeFileSync("nextlevel2.json", JSON.stringify(products));
+  fs.writeFileSync("nextlevelitems.json", JSON.stringify(products));
   browser.close();
 });
